@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DaySpan</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">D</span>
+          <div>
+            <h1>DaySpan</h1>
+            <p id="todayLabel">今天</p>
+          </div>
+        </div>
+
+        <nav class="toolbar" aria-label="应用工具栏">
+          <button class="icon-button" id="searchButton" title="搜索" aria-label="搜索">
+            <span aria-hidden="true">⌕</span>
+          </button>
+          <button class="icon-button" id="historyButton" title="历史" aria-label="历史">
+            <span aria-hidden="true">◷</span>
+          </button>
+          <button class="icon-button accent" id="newNoteButton" title="新建随笔" aria-label="新建随笔">
+            <span aria-hidden="true">＋</span>
+          </button>
+        </nav>
+      </header>
+
+      <section class="quick-add" aria-label="快速添加待办">
+        <input id="quickTaskInput" type="text" placeholder="写下今天要做的一件事" autocomplete="off" />
+        <button id="quickTaskButton">添加</button>
+      </section>
+
+      <section class="view-switcher" aria-label="布局切换">
+        <button class="segment active" data-layout="vertical">纵向</button>
+        <button class="segment" data-layout="horizontal">横向</button>
+      </section>
+
+      <main id="dayBoard" class="day-board vertical" aria-live="polite"></main>
+    </div>
+
+    <div class="side-panel" id="notePanel" aria-hidden="true">
+      <div class="panel-backdrop" data-close-panel></div>
+      <article class="panel-card note-editor" role="dialog" aria-modal="true" aria-labelledby="notePanelTitle">
+        <header class="panel-header">
+          <div>
+            <span class="eyebrow" id="noteDateLabel">今天</span>
+            <h2 id="notePanelTitle">随笔</h2>
+          </div>
+          <button class="icon-button" data-close-panel title="关闭" aria-label="关闭">×</button>
+        </header>
+
+        <label class="field-label" for="noteTitleInput">标题</label>
+        <input class="text-field" id="noteTitleInput" type="text" placeholder="随笔标题" />
+
+        <label class="field-label" for="noteTagsInput">标签</label>
+        <input class="text-field" id="noteTagsInput" type="text" placeholder="科研, 课程, 生活" />
+
+        <div class="editor-tabs" role="tablist" aria-label="随笔模式">
+          <button class="segment active" data-editor-tab="write">编辑</button>
+          <button class="segment" data-editor-tab="preview">预览</button>
+        </div>
+
+        <textarea id="noteContentInput" class="note-textarea" placeholder="支持 Markdown 记录"></textarea>
+        <div id="notePreview" class="markdown-preview hidden"></div>
+
+        <footer class="panel-actions">
+          <label class="summary-toggle">
+            <input id="noteSummaryInput" type="checkbox" />
+            <span>今日总结</span>
+          </label>
+          <button class="ghost-button" id="deleteNoteButton">删除</button>
+          <button class="primary-button" id="saveNoteButton">保存</button>
+        </footer>
+      </article>
+    </div>
+
+    <div class="side-panel" id="historyPanel" aria-hidden="true">
+      <div class="panel-backdrop" data-close-history></div>
+      <article class="panel-card history-panel" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+        <header class="panel-header">
+          <div>
+            <span class="eyebrow">归档</span>
+            <h2 id="historyTitle">历史记录</h2>
+          </div>
+          <button class="icon-button" data-close-history title="关闭" aria-label="关闭">×</button>
+        </header>
+        <div class="history-tools">
+          <input class="text-field" id="historySearchInput" type="search" placeholder="搜索待办、随笔或标签" />
+          <button class="ghost-button" id="exportButton">导出</button>
+        </div>
+        <div id="historyList" class="history-list"></div>
+      </article>
+    </div>
+
+    <script src="./app.js"></script>
+  </body>
+</html>

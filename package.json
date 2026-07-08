@@ -1,0 +1,16 @@
+{
+  "name": "dayspan",
+  "version": "0.1.0",
+  "private": true,
+  "productName": "DaySpan",
+  "description": "A local-first three-day desktop workbench for todos and Markdown notes.",
+  "main": "electron-main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:portable": "powershell -ExecutionPolicy Bypass -File .\\build-portable.ps1",
+    "serve": "python -m http.server 5173"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
+  }
+}
