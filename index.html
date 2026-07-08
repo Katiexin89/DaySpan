@@ -6,9 +6,50 @@
     <title>DaySpan</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body>
-    <div class="app-shell">
-      <header class="topbar">
+  <body class="mode-compact">
+    <section class="compact-shell" id="compactShell" aria-label="DaySpan 悬浮记录窗">
+      <header class="compact-header drag-region">
+        <div class="compact-brand">
+          <span class="brand-mark" aria-hidden="true">D</span>
+          <div>
+            <h1>DaySpan</h1>
+            <p id="compactDateLabel">今天</p>
+          </div>
+        </div>
+
+        <nav class="compact-toolbar no-drag" aria-label="悬浮窗工具栏">
+          <button class="text-button" id="compactPinButton" title="切换置顶">置顶</button>
+          <button class="text-button" id="expandButton" title="展开完整界面">展开</button>
+          <button class="icon-button accent" id="compactNoteButton" title="新建随笔" aria-label="新建随笔">
+            <span aria-hidden="true">＋</span>
+          </button>
+        </nav>
+      </header>
+
+      <section class="compact-quick no-drag" aria-label="快速添加今日待办">
+        <input id="compactTaskInput" type="text" placeholder="写下今天要做的一件事" autocomplete="off" />
+        <button id="compactTaskButton">添加</button>
+      </section>
+
+      <section class="compact-list no-drag" id="compactTaskList" aria-live="polite"></section>
+
+      <footer class="compact-footer no-drag">
+        <button class="text-button" id="lockButton" title="锁定或解锁拖动">可拖动</button>
+        <label class="opacity-control" for="opacitySelect">
+          <span>透明度</span>
+          <select id="opacitySelect">
+            <option value="1">100%</option>
+            <option value="0.9">90%</option>
+            <option value="0.8">80%</option>
+            <option value="0.7">70%</option>
+            <option value="0.6">60%</option>
+          </select>
+        </label>
+      </footer>
+    </section>
+
+    <div class="app-shell full-shell hidden" id="fullShell">
+      <header class="topbar drag-region">
         <div class="brand">
           <span class="brand-mark" aria-hidden="true">D</span>
           <div>
@@ -17,7 +58,9 @@
           </div>
         </div>
 
-        <nav class="toolbar" aria-label="应用工具栏">
+        <nav class="toolbar no-drag" aria-label="应用工具栏">
+          <button class="text-button" id="collapseButton" title="收起为悬浮窗">收起</button>
+          <button class="text-button" id="fullPinButton" title="切换置顶">置顶</button>
           <button class="icon-button" id="searchButton" title="搜索" aria-label="搜索">
             <span aria-hidden="true">⌕</span>
           </button>
@@ -27,23 +70,29 @@
           <button class="icon-button accent" id="newNoteButton" title="新建随笔" aria-label="新建随笔">
             <span aria-hidden="true">＋</span>
           </button>
+          <button class="icon-button" id="minimizeButton" title="最小化" aria-label="最小化">
+            <span aria-hidden="true">−</span>
+          </button>
+          <button class="icon-button" id="closeButton" title="关闭" aria-label="关闭">
+            <span aria-hidden="true">×</span>
+          </button>
         </nav>
       </header>
 
-      <section class="quick-add" aria-label="快速添加待办">
+      <section class="quick-add no-drag" aria-label="快速添加待办">
         <input id="quickTaskInput" type="text" placeholder="写下今天要做的一件事" autocomplete="off" />
         <button id="quickTaskButton">添加</button>
       </section>
 
-      <section class="view-switcher" aria-label="布局切换">
+      <section class="view-switcher no-drag" aria-label="布局切换">
         <button class="segment active" data-layout="vertical">纵向</button>
         <button class="segment" data-layout="horizontal">横向</button>
       </section>
 
-      <main id="dayBoard" class="day-board vertical" aria-live="polite"></main>
+      <main id="dayBoard" class="day-board vertical no-drag" aria-live="polite"></main>
     </div>
 
-    <div class="side-panel" id="notePanel" aria-hidden="true">
+    <div class="side-panel no-drag" id="notePanel" aria-hidden="true">
       <div class="panel-backdrop" data-close-panel></div>
       <article class="panel-card note-editor" role="dialog" aria-modal="true" aria-labelledby="notePanelTitle">
         <header class="panel-header">
@@ -79,7 +128,7 @@
       </article>
     </div>
 
-    <div class="side-panel" id="historyPanel" aria-hidden="true">
+    <div class="side-panel no-drag" id="historyPanel" aria-hidden="true">
       <div class="panel-backdrop" data-close-history></div>
       <article class="panel-card history-panel" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
         <header class="panel-header">

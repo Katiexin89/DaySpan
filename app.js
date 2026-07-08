@@ -1,5 +1,13 @@
 const STORAGE_KEY = "dayspan-v1";
 
+const windowDefaults = {
+  mode: "compact",
+  alwaysOnTop: true,
+  opacity: 0.9,
+  lockPosition: false,
+  hoverOpaque: true
+};
+
 const initialState = {
   tasks: [],
   notes: [],
@@ -8,12 +16,38 @@ const initialState = {
   }
 };
 
+const windowApi = window.daySpanWindow || {
+  getPreferences: async () => windowDefaults,
+  updatePreferences: async (patch) => ({ ...windowPrefs, ...patch }),
+  setMode: async (mode) => ({ ...windowPrefs, mode }),
+  setOpacity: async () => {},
+  minimize: async () => {},
+  close: async () => {},
+  onPreferencesChanged: () => {}
+};
+
 let state = loadState();
+let windowPrefs = { ...windowDefaults };
 let activeTaskFormDate = null;
 let activeNoteId = null;
 let activeNoteDate = dateKey(new Date());
 let activeEditorTab = "write";
 
+const compactShell = document.getElementById("compactShell");
+const compactDateLabel = document.getElementById("compactDateLabel");
+const compactPinButton = document.getElementById("compactPinButton");
+const expandButton = document.getElementById("expandButton");
+const compactNoteButton = document.getElementById("compactNoteButton");
+const compactTaskInput = document.getElementById("compactTaskInput");
+const compactTaskButton = document.getElementById("compactTaskButton");
+const compactTaskList = document.getElementById("compactTaskList");
+const lockButton = document.getElementById("lockButton");
+const opacitySelect = document.getElementById("opacitySelect");
+const fullShell = document.getElementById("fullShell");
+const collapseButton = document.getElementById("collapseButton");
+const fullPinButton = document.getElementById("fullPinButton");
+const minimizeButton = document.getElementById("minimizeButton");
+const closeButton = document.getElementById("closeButton");
 const board = document.getElementById("dayBoard");
 const todayLabel = document.getElementById("todayLabel");
 const quickTaskInput = document.getElementById("quickTaskInput");
@@ -72,6 +106,14 @@ function shiftedDate(offset) {
 }
 
 function formatDate(date) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "long",
+    day: "numeric",
+    weekday: "short"
+  }).format(date);
+}
+
+function formatCompactDate(date) {
   return new Intl.DateTimeFormat("zh-CN", {
     month: "long",
     day: "numeric",
@@ -147,10 +189,68 @@ function parseTags(value) {
     .filter(Boolean);
 }
 
+function getTodayKey() {
+  return dateKey(new Date());
+}
+
+function getTodayUndoneTasks() {
+  return state.tasks
+    .filter((task) => task.date === getTodayKey() && !task.done)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
 function renderApp() {
+  renderWindowState();
+  renderCompactApp();
+  renderFullApp();
+}
+
+function renderWindowState() {
+  const mode = windowPrefs.mode === "full" ? "full" : "compact";
+  document.body.classList.toggle("mode-compact", mode === "compact");
+  document.body.classList.toggle("mode-full", mode === "full");
+  document.body.classList.toggle("locked", Boolean(windowPrefs.lockPosition));
+  compactShell.classList.toggle("hidden", mode !== "compact");
+  fullShell.classList.toggle("hidden", mode !== "full");
+
+  const pinText = windowPrefs.alwaysOnTop ? "置顶" : "贴桌";
+  compactPinButton.textContent = pinText;
+  fullPinButton.textContent = pinText;
+  lockButton.textContent = windowPrefs.lockPosition ? "已锁定" : "可拖动";
+  opacitySelect.value = String(windowPrefs.opacity);
+}
+
+function renderCompactApp() {
+  compactDateLabel.textContent = formatCompactDate(new Date());
+  const tasks = getTodayUndoneTasks().slice(0, 3);
+
+  if (!tasks.length) {
+    compactTaskList.innerHTML = `<div class="compact-empty">随手写下一件事</div>`;
+    return;
+  }
+
+  compactTaskList.innerHTML = tasks.map(renderCompactTask).join("");
+  compactTaskList.querySelectorAll("[data-compact-toggle]").forEach((button) => {
+    button.addEventListener("click", () => {
+      toggleTask(button.dataset.compactToggle);
+      renderApp();
+    });
+  });
+}
+
+function renderCompactTask(task) {
+  return `
+    <article class="compact-task">
+      <button class="task-check" data-compact-toggle="${task.id}" title="完成待办" aria-label="完成待办"></button>
+      <span>${escapeHtml(task.title)}</span>
+    </article>
+  `;
+}
+
+function renderFullApp() {
   const layout = state.settings.layout || "vertical";
-  board.className = `day-board ${layout}`;
-  todayLabel.textContent = formatFullDate(dateKey(new Date()));
+  board.className = `day-board ${layout} no-drag`;
+  todayLabel.textContent = formatFullDate(getTodayKey());
   document.querySelectorAll("[data-layout]").forEach((button) => {
     button.classList.toggle("active", button.dataset.layout === layout);
   });
@@ -344,6 +444,12 @@ function addTask(date, title, tagValue = "") {
   saveState();
 }
 
+function addTodayTaskFrom(input) {
+  addTask(getTodayKey(), input.value);
+  input.value = "";
+  renderApp();
+}
+
 function toggleTask(taskId) {
   const task = state.tasks.find((item) => item.id === taskId);
   if (!task) return;
@@ -370,7 +476,7 @@ function editTask(taskId) {
 }
 
 function carryTodayToTomorrow() {
-  const today = dateKey(shiftedDate(0));
+  const today = getTodayKey();
   const tomorrow = dateKey(shiftedDate(1));
   const now = new Date().toISOString();
   let moved = 0;
@@ -390,7 +496,7 @@ function carryTodayToTomorrow() {
   }
 }
 
-function openNoteEditor(noteId, date = dateKey(new Date())) {
+function openNoteEditor(noteId, date = getTodayKey()) {
   const note = noteId ? state.notes.find((item) => item.id === noteId) : null;
   activeNoteId = note?.id || null;
   activeNoteDate = note?.date || date;
@@ -663,6 +769,27 @@ function exportData() {
   URL.revokeObjectURL(url);
 }
 
+async function setWindowMode(mode) {
+  windowPrefs = { ...windowPrefs, mode };
+  renderApp();
+  const updated = await windowApi.setMode(mode);
+  windowPrefs = { ...windowPrefs, ...(updated || {}) };
+  renderApp();
+}
+
+async function updateWindowPreferences(patch) {
+  windowPrefs = { ...windowPrefs, ...patch };
+  renderApp();
+  const updated = await windowApi.updatePreferences(patch);
+  windowPrefs = { ...windowPrefs, ...(updated || {}) };
+  renderApp();
+}
+
+async function openQuickNote() {
+  await setWindowMode("full");
+  openNoteEditor(null, getTodayKey());
+}
+
 document.querySelectorAll("[data-layout]").forEach((button) => {
   button.addEventListener("click", () => {
     state.settings.layout = button.dataset.layout;
@@ -671,23 +798,50 @@ document.querySelectorAll("[data-layout]").forEach((button) => {
   });
 });
 
-quickTaskButton.addEventListener("click", () => {
-  addTask(dateKey(new Date()), quickTaskInput.value);
-  quickTaskInput.value = "";
-  renderApp();
+compactTaskButton.addEventListener("click", () => addTodayTaskFrom(compactTaskInput));
+compactTaskInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") addTodayTaskFrom(compactTaskInput);
 });
 
+quickTaskButton.addEventListener("click", () => addTodayTaskFrom(quickTaskInput));
 quickTaskInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    quickTaskButton.click();
-  }
+  if (event.key === "Enter") addTodayTaskFrom(quickTaskInput);
 });
 
-newNoteButton.addEventListener("click", () => openNoteEditor(null, dateKey(new Date())));
+expandButton.addEventListener("click", () => setWindowMode("full"));
+collapseButton.addEventListener("click", () => setWindowMode("compact"));
+compactNoteButton.addEventListener("click", openQuickNote);
+newNoteButton.addEventListener("click", () => openNoteEditor(null, getTodayKey()));
 searchButton.addEventListener("click", () => openHistoryPanel(true));
 historyButton.addEventListener("click", () => openHistoryPanel(false));
 historySearchInput.addEventListener("input", renderHistory);
 exportButton.addEventListener("click", exportData);
+minimizeButton.addEventListener("click", () => windowApi.minimize());
+closeButton.addEventListener("click", () => windowApi.close());
+
+compactPinButton.addEventListener("click", () => {
+  updateWindowPreferences({ alwaysOnTop: !windowPrefs.alwaysOnTop });
+});
+
+fullPinButton.addEventListener("click", () => {
+  updateWindowPreferences({ alwaysOnTop: !windowPrefs.alwaysOnTop });
+});
+
+lockButton.addEventListener("click", () => {
+  updateWindowPreferences({ lockPosition: !windowPrefs.lockPosition });
+});
+
+opacitySelect.addEventListener("change", () => {
+  updateWindowPreferences({ opacity: Number(opacitySelect.value) });
+});
+
+compactShell.addEventListener("mouseenter", () => {
+  if (windowPrefs.hoverOpaque) windowApi.setOpacity(1);
+});
+
+compactShell.addEventListener("mouseleave", () => {
+  if (windowPrefs.hoverOpaque) windowApi.setOpacity(windowPrefs.opacity);
+});
 
 document.querySelectorAll("[data-close-panel]").forEach((element) => {
   element.addEventListener("click", closeNoteEditor);
@@ -715,4 +869,15 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
-renderApp();
+windowApi.onPreferencesChanged((preferences) => {
+  windowPrefs = { ...windowPrefs, ...(preferences || {}) };
+  renderApp();
+});
+
+async function init() {
+  const preferences = await windowApi.getPreferences();
+  windowPrefs = { ...windowDefaults, ...(preferences || {}) };
+  renderApp();
+}
+
+init();

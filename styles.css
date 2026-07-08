@@ -21,46 +21,84 @@
   box-sizing: border-box;
 }
 
+html,
 body {
-  min-width: 340px;
+  min-width: 0;
   margin: 0;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.55), transparent 240px),
-    var(--bg);
+}
+
+body {
+  background: var(--bg);
   color: var(--ink);
+}
+
+body.mode-compact {
+  overflow: hidden;
+}
+
+body.mode-full {
+  overflow: auto;
 }
 
 button,
 input,
-textarea {
+textarea,
+select {
   font: inherit;
+}
+
+button,
+select {
+  cursor: pointer;
 }
 
 button {
   border: 0;
-  cursor: pointer;
 }
 
-.app-shell {
-  width: min(100%, 1180px);
-  min-height: 100vh;
-  margin: 0 auto;
-  padding: 18px;
+.hidden {
+  display: none !important;
 }
 
+.drag-region {
+  -webkit-app-region: drag;
+}
+
+.no-drag,
+button,
+input,
+textarea,
+select {
+  -webkit-app-region: no-drag;
+}
+
+body.locked .drag-region {
+  -webkit-app-region: no-drag;
+}
+
+.compact-shell {
+  display: grid;
+  height: 100vh;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(247, 243, 234, 0.96);
+}
+
+.compact-header,
 .topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 14px;
+  gap: 12px;
 }
 
+.compact-brand,
 .brand {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .brand-mark {
@@ -75,40 +113,47 @@ button {
   font-weight: 800;
 }
 
+.compact-brand h1,
 .brand h1 {
   margin: 0;
-  font-size: 20px;
+  font-size: 19px;
   line-height: 1.1;
   letter-spacing: 0;
 }
 
+.compact-brand p,
 .brand p {
   margin: 5px 0 0;
   color: var(--muted);
   font-size: 12px;
+  white-space: nowrap;
 }
 
+.compact-toolbar,
 .toolbar,
 .view-switcher,
 .editor-tabs,
 .panel-actions,
-.history-tools {
+.history-tools,
+.compact-footer {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.icon-button {
-  display: grid;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
+.toolbar {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.icon-button,
+.text-button {
+  display: inline-grid;
   place-items: center;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(255, 253, 248, 0.82);
   color: var(--ink);
-  font-size: 20px;
   line-height: 1;
   transition:
     transform 160ms ease,
@@ -116,7 +161,23 @@ button {
     background 160ms ease;
 }
 
-.icon-button:hover {
+.icon-button {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  font-size: 20px;
+}
+
+.text-button {
+  min-width: 46px;
+  height: 32px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.icon-button:hover,
+.text-button:hover {
   transform: translateY(-1px);
   border-color: var(--accent);
   background: var(--surface-strong);
@@ -128,13 +189,14 @@ button {
   color: white;
 }
 
+.compact-quick,
 .quick-add {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
-  margin-bottom: 10px;
 }
 
+.compact-quick input,
 .quick-add input,
 .text-field {
   width: 100%;
@@ -149,6 +211,7 @@ button {
     box-shadow 160ms ease;
 }
 
+.compact-quick input,
 .quick-add input {
   height: 42px;
   padding: 0 13px;
@@ -159,6 +222,7 @@ button {
   padding: 0 12px;
 }
 
+.compact-quick input:focus,
 .quick-add input:focus,
 .text-field:focus,
 .note-textarea:focus {
@@ -166,6 +230,7 @@ button {
   box-shadow: 0 0 0 3px rgba(47, 111, 115, 0.16);
 }
 
+.compact-quick button,
 .quick-add button,
 .primary-button,
 .ghost-button {
@@ -175,6 +240,7 @@ button {
   white-space: nowrap;
 }
 
+.compact-quick button,
 .quick-add button,
 .primary-button {
   background: var(--accent);
@@ -182,6 +248,7 @@ button {
   font-weight: 700;
 }
 
+.compact-quick button:hover,
 .quick-add button:hover,
 .primary-button:hover {
   background: var(--accent-strong);
@@ -195,6 +262,83 @@ button {
 
 .ghost-button:hover {
   border-color: var(--accent);
+}
+
+.compact-list {
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.compact-task {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 8px;
+  align-items: center;
+  min-height: 31px;
+  border: 1px solid rgba(222, 214, 201, 0.78);
+  border-radius: 8px;
+  padding: 5px 8px;
+  background: rgba(255, 253, 248, 0.76);
+}
+
+.compact-task span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.compact-empty {
+  display: grid;
+  min-height: 38px;
+  place-items: center start;
+  border: 1px dashed #d4c7b5;
+  border-radius: 8px;
+  padding: 0 12px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.compact-footer {
+  justify-content: space-between;
+}
+
+.opacity-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.opacity-control select {
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 8px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  outline: none;
+}
+
+.app-shell {
+  width: min(100%, 1180px);
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 18px;
+}
+
+.topbar {
+  margin-bottom: 14px;
+}
+
+.quick-add {
+  margin-bottom: 10px;
 }
 
 .view-switcher,
@@ -367,6 +511,10 @@ button {
   background: white;
   color: white;
   font-size: 15px;
+}
+
+.task-check:hover {
+  border-color: var(--accent);
 }
 
 .task-item.done .task-check {

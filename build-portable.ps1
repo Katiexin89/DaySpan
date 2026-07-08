@@ -13,10 +13,15 @@ New-Item -ItemType Directory -Force -Path $outDir | Out-Null
 Copy-Item -Path (Join-Path $electronDist "*") -Destination $outDir -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $outDir "electron.exe") -Destination (Join-Path $outDir "DaySpan.exe") -Force
 
+if (Test-Path $appDir) {
+  Remove-Item -LiteralPath $appDir -Recurse -Force
+}
+
 New-Item -ItemType Directory -Force -Path $appDir | Out-Null
 $appFiles = @(
   "package.json",
   "electron-main.js",
+  "preload.js",
   "index.html",
   "styles.css",
   "app.js",
