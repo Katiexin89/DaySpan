@@ -29,6 +29,7 @@ const windowApi = window.daySpanWindow || {
 let state = loadState();
 let windowPrefs = { ...windowDefaults };
 let activeTaskFormDate = null;
+let activeCompactTaskForm = false;
 let activeEditTaskId = null;
 let activeNoteId = null;
 let activeNoteDate = dateKey(new Date());
@@ -83,6 +84,7 @@ const quickNotePanel = document.getElementById("quickNotePanel");
 const quickNoteDateLabel = document.getElementById("quickNoteDateLabel");
 const quickNoteContentInput = document.getElementById("quickNoteContentInput");
 const closeQuickNoteButton = document.getElementById("closeQuickNoteButton");
+const deleteQuickNoteButton = document.getElementById("deleteQuickNoteButton");
 const saveQuickNoteButton = document.getElementById("saveQuickNoteButton");
 
 function loadState() {
@@ -172,7 +174,7 @@ function getDays() {
       title: "今日工作台",
       taskTitle: "今日待办",
       noteTitle: "今日随笔",
-      emptyTasks: "写下今天要推进的事",
+      emptyTasks: "写下今天要做的一件事",
       emptyNotes: "随手记一点想法"
     },
     {
@@ -183,8 +185,8 @@ function getDays() {
       title: "明日计划",
       taskTitle: "明日想做",
       noteTitle: "明日草稿",
-      emptyTasks: "提前放一件明天的事",
-      emptyNotes: "可以先留一个计划草稿"
+      emptyTasks: "写下明天要做的一件事",
+      emptyNotes: "写一个明日随笔"
     }
   ];
 }
@@ -263,7 +265,7 @@ function renderCompactApp() {
   compactTaskList.innerHTML = `
     <section class="compact-section">
       <div class="compact-section-title">今日待办</div>
-      ${tasks.length ? tasks.map(renderCompactTask).join("") : `<div class="compact-empty">随手写下一件事</div>`}
+      ${renderCompactTaskArea(tasks)}
     </section>
     <section class="compact-section">
       <div class="compact-section-title">今日随笔</div>
@@ -281,6 +283,63 @@ function renderCompactApp() {
       renderApp();
     });
   });
+  compactTaskList.querySelectorAll("[data-compact-edit-task-title]").forEach((element) => {
+    element.addEventListener("dblclick", () => {
+      startTaskEdit(element.dataset.compactEditTaskTitle);
+    });
+    element.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") startTaskEdit(element.dataset.compactEditTaskTitle);
+    });
+  });
+  compactTaskList.querySelectorAll("[data-compact-empty-task]").forEach((empty) => {
+    empty.addEventListener("dblclick", openCompactTaskForm);
+    empty.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") openCompactTaskForm();
+    });
+  });
+  compactTaskList.querySelectorAll("[data-compact-task-form]").forEach((form) => {
+    const input = form.querySelector("input[name='title']");
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      finishCompactTaskForm(input.value, true);
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        finishCompactTaskForm(input.value, true);
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        finishCompactTaskForm(input.value, false);
+      }
+    });
+    input.addEventListener("blur", () => {
+      if (activeCompactTaskForm) finishCompactTaskForm(input.value, true);
+    });
+    input.focus();
+  });
+  compactTaskList.querySelectorAll("[data-compact-task-edit-form]").forEach((form) => {
+    const input = form.querySelector("input[name='title']");
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      finishTaskEdit(form.dataset.compactTaskEditForm, input.value, true);
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        finishTaskEdit(form.dataset.compactTaskEditForm, input.value, true);
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        finishTaskEdit(form.dataset.compactTaskEditForm, input.value, false);
+      }
+    });
+    input.addEventListener("blur", () => {
+      if (activeEditTaskId === form.dataset.compactTaskEditForm) {
+        finishTaskEdit(form.dataset.compactTaskEditForm, input.value, true);
+      }
+    });
+  });
   compactTaskList.querySelectorAll("[data-compact-note]").forEach((card) => {
     card.addEventListener("dblclick", () => openQuickNoteEditor(card.dataset.compactNote));
     card.addEventListener("keydown", (event) => {
@@ -295,11 +354,35 @@ function renderCompactApp() {
   });
 }
 
+function renderCompactTaskArea(tasks) {
+  if (tasks.length) {
+    activeCompactTaskForm = false;
+    return tasks.map(renderCompactTask).join("");
+  }
+  if (activeCompactTaskForm) {
+    return `
+      <form class="compact-task-form" data-compact-task-form>
+        <input name="title" type="text" placeholder="写下今天要做的一件事" autocomplete="off" />
+      </form>
+    `;
+  }
+  return `<div class="compact-empty compact-task-empty" data-compact-empty-task tabindex="0">随手写下一件事</div>`;
+}
+
 function renderCompactTask(task) {
+  if (activeEditTaskId === task.id) {
+    return `
+      <form class="compact-task compact-task-edit" data-compact-task-edit-form="${task.id}">
+        <button class="task-check" type="button" data-compact-toggle="${task.id}" title="完成待办" aria-label="完成待办"></button>
+        <input class="compact-task-edit-input" name="title" type="text" value="${escapeHtml(task.title)}" autocomplete="off" />
+      </form>
+    `;
+  }
+
   return `
     <article class="compact-task">
       <button class="task-check" data-compact-toggle="${task.id}" title="完成待办" aria-label="完成待办"></button>
-      <span>${escapeHtml(task.title)}</span>
+      <span data-compact-edit-task-title="${task.id}" tabindex="0" title="双击编辑待办">${escapeHtml(task.title)}</span>
     </article>
   `;
 }
@@ -349,8 +432,7 @@ function renderDayCard(day) {
             <span>${undoneCount} 未完成</span>
           </div>
           <div class="task-list">
-            ${renderInlineTaskForm(day.key)}
-            ${tasks.length ? tasks.map(renderTask).join("") : `<div class="empty-state">${day.emptyTasks}</div>`}
+            ${renderTaskListContent(day, tasks)}
           </div>
         </section>
         ${renderCarryButton(day, tasks)}
@@ -370,6 +452,17 @@ function renderDayCard(day) {
       </div>
     </section>
   `;
+}
+
+function renderTaskListContent(day, tasks) {
+  if (activeTaskFormDate === day.key) {
+    return `
+      ${renderInlineTaskForm(day.key)}
+      ${tasks.length ? tasks.map(renderTask).join("") : ""}
+    `;
+  }
+  if (tasks.length) return tasks.map(renderTask).join("");
+  return `<div class="empty-state task-empty-state" data-empty-task="${day.key}" tabindex="0">${day.emptyTasks}</div>`;
 }
 
 function renderInlineTaskForm(date) {
@@ -443,10 +536,7 @@ function renderCarryButton(day, tasks) {
 function bindBoardEvents() {
   board.querySelectorAll("[data-add-task]").forEach((button) => {
     button.addEventListener("click", () => {
-      activeTaskFormDate = button.dataset.addTask;
-      renderApp();
-      const input = board.querySelector(`[data-task-form="${activeTaskFormDate}"] input[name="title"]`);
-      input?.focus();
+      openInlineTaskForm(button.dataset.addTask);
     });
   });
 
@@ -464,6 +554,13 @@ function bindBoardEvents() {
     button.addEventListener("click", () => {
       activeTaskFormDate = null;
       renderApp();
+    });
+  });
+
+  board.querySelectorAll("[data-empty-task]").forEach((empty) => {
+    empty.addEventListener("dblclick", () => openInlineTaskForm(empty.dataset.emptyTask));
+    empty.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") openInlineTaskForm(empty.dataset.emptyTask);
     });
   });
 
@@ -535,6 +632,13 @@ function bindBoardEvents() {
   }
 }
 
+function openInlineTaskForm(date) {
+  activeTaskFormDate = date;
+  renderApp();
+  const input = board.querySelector(`[data-task-form="${activeTaskFormDate}"] input[name="title"]`);
+  input?.focus();
+}
+
 function addTask(date, title, tagValue = "") {
   const cleanTitle = String(title || "").trim();
   if (!cleanTitle) return;
@@ -559,6 +663,18 @@ function addTodayTaskFrom(input) {
   renderApp();
 }
 
+function openCompactTaskForm() {
+  activeCompactTaskForm = true;
+  renderApp();
+}
+
+function finishCompactTaskForm(title, shouldSave) {
+  if (!activeCompactTaskForm) return;
+  if (shouldSave) addTask(getTodayKey(), title);
+  activeCompactTaskForm = false;
+  renderApp();
+}
+
 function toggleTask(taskId) {
   const task = state.tasks.find((item) => item.id === taskId);
   if (!task) return;
@@ -578,7 +694,9 @@ function startTaskEdit(taskId) {
   if (!task) return;
   activeEditTaskId = taskId;
   renderApp();
-  const input = board.querySelector(`[data-task-edit-form="${taskId}"] input[name="title"]`);
+  const compactInput = compactTaskList.querySelector(`[data-compact-task-edit-form="${taskId}"] input[name="title"]`);
+  const boardInput = board.querySelector(`[data-task-edit-form="${taskId}"] input[name="title"]`);
+  const input = windowPrefs.mode === "compact" ? compactInput || boardInput : boardInput || compactInput;
   input?.focus();
   input?.select();
 }
@@ -669,6 +787,7 @@ function openQuickNoteEditor(noteId = null, date = getTodayKey()) {
   quickNoteDate = note?.date || date;
   quickNoteDateLabel.textContent = formatDateKeyCompact(quickNoteDate);
   quickNoteContentInput.value = note?.content || "";
+  deleteQuickNoteButton.style.display = note ? "" : "none";
   quickNotePanel.classList.add("open");
   quickNotePanel.setAttribute("aria-hidden", "false");
   quickNoteContentInput.focus();
@@ -678,6 +797,7 @@ function closeQuickNoteEditor() {
   quickNotePanel.classList.remove("open");
   quickNotePanel.setAttribute("aria-hidden", "true");
   quickNoteId = null;
+  deleteQuickNoteButton.style.display = "none";
 }
 
 function saveQuickNote() {
@@ -701,6 +821,14 @@ function saveQuickNote() {
     addNote(quickNoteDate, cleanContent);
   }
 
+  closeQuickNoteEditor();
+  renderApp();
+}
+
+function deleteQuickNote() {
+  if (!quickNoteId) return;
+  state.notes = state.notes.filter((item) => item.id !== quickNoteId);
+  saveState();
   closeQuickNoteEditor();
   renderApp();
 }
@@ -1010,6 +1138,7 @@ menuHistoryButton.addEventListener("click", () => openHistoryFromMenu(false));
 historySearchInput.addEventListener("input", renderHistory);
 exportButton.addEventListener("click", exportData);
 closeQuickNoteButton.addEventListener("click", closeQuickNoteEditor);
+deleteQuickNoteButton.addEventListener("click", deleteQuickNote);
 saveQuickNoteButton.addEventListener("click", saveQuickNote);
 
 document.querySelectorAll("[data-window-minimize]").forEach((button) => {

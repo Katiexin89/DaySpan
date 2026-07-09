@@ -286,6 +286,14 @@ body.locked .drag-region {
   border-color: var(--accent);
 }
 
+.danger-button {
+  color: var(--rose);
+}
+
+.danger-button:hover {
+  border-color: var(--rose);
+}
+
 .compact-list {
   display: grid;
   align-content: start;
@@ -330,6 +338,31 @@ body.locked .drag-region {
   font-size: 13px;
 }
 
+.compact-task span[data-compact-edit-task-title] {
+  cursor: text;
+}
+
+.compact-task-edit {
+  margin: 0;
+}
+
+.compact-task-edit-input {
+  min-width: 0;
+  height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 8px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-size: 13px;
+  outline: none;
+}
+
+.compact-task-edit-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47, 111, 115, 0.14);
+}
+
 .compact-empty {
   display: grid;
   min-height: 38px;
@@ -339,6 +372,26 @@ body.locked .drag-region {
   padding: 0 12px;
   color: var(--muted);
   font-size: 13px;
+}
+
+.compact-task-empty {
+  cursor: text;
+}
+
+.compact-task-form input {
+  width: 100%;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 11px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  outline: none;
+}
+
+.compact-task-form input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47, 111, 115, 0.14);
 }
 
 .compact-note {
@@ -682,6 +735,10 @@ body.locked .drag-region {
 }
 
 .note-empty-state {
+  cursor: text;
+}
+
+.task-empty-state {
   cursor: text;
 }
 
