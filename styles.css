@@ -136,7 +136,7 @@ body.locked .drag-region {
 .history-tools {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .toolbar {
@@ -252,6 +252,30 @@ body.locked .drag-region {
   background: var(--accent-strong);
 }
 
+.note-action-button {
+  display: inline-grid;
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  place-items: center;
+  padding: 0;
+}
+
+.compact-quick .note-action-button,
+.quick-add .note-action-button {
+  padding: 0;
+}
+
+.note-action-button svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.9;
+}
+
 .ghost-button {
   border: 1px solid var(--line);
   background: var(--surface-strong);
@@ -309,7 +333,14 @@ body.locked .drag-region {
 }
 
 .topbar {
-  margin-bottom: 14px;
+  position: sticky;
+  top: 0;
+  z-index: 16;
+  margin: -18px -18px 12px;
+  border-bottom: 1px solid rgba(222, 214, 201, 0.72);
+  padding: 14px 18px 12px;
+  background: rgba(247, 243, 234, 0.94);
+  backdrop-filter: blur(14px);
 }
 
 .quick-add {
@@ -816,7 +847,7 @@ body.locked .drag-region {
   z-index: 18;
   display: grid;
   width: 220px;
-  gap: 10px;
+  gap: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 10px;
@@ -861,6 +892,17 @@ body.mode-full .preferences-menu {
   font-weight: 800;
 }
 
+.menu-group {
+  display: grid;
+  gap: 8px;
+}
+
+.menu-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
 .preference-row select {
   height: 28px;
   border: 1px solid var(--line);
@@ -886,6 +928,8 @@ body.mode-full .preferences-menu {
 
   .topbar {
     align-items: flex-start;
+    margin: -14px -14px 10px;
+    padding: 12px 14px 10px;
   }
 
   .toolbar {

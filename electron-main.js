@@ -38,7 +38,8 @@ function loadPreferences() {
       bounds: {
         ...defaultPreferences.bounds,
         ...(saved.bounds || {})
-      }
+      },
+      mode: "compact"
     };
   } catch {
     return { ...defaultPreferences, bounds: { ...defaultPreferences.bounds } };

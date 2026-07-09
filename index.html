@@ -20,18 +20,26 @@
         <nav class="compact-toolbar no-drag" aria-label="悬浮窗工具栏">
           <button class="text-button" id="compactPinButton" title="切换置顶">置顶</button>
           <button class="text-button" id="expandButton" title="展开完整界面">展开</button>
-          <button class="icon-button accent" id="compactNoteButton" title="新建随笔" aria-label="新建随笔">
-            <span aria-hidden="true">＋</span>
-          </button>
           <button class="icon-button" id="compactMoreButton" title="更多设置" aria-label="更多设置">
             <span aria-hidden="true">⋯</span>
+          </button>
+          <button class="icon-button" data-window-minimize title="最小化" aria-label="最小化">
+            <span aria-hidden="true">−</span>
+          </button>
+          <button class="icon-button" data-window-close title="关闭" aria-label="关闭">
+            <span aria-hidden="true">×</span>
           </button>
         </nav>
       </header>
 
       <section class="compact-quick no-drag" aria-label="快速添加今日待办">
         <input id="compactTaskInput" type="text" placeholder="写下今天要做的一件事" autocomplete="off" />
-        <button id="compactTaskButton">添加</button>
+        <button class="note-action-button" id="compactNoteButton" title="新建随笔" aria-label="新建随笔">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M18.8 4.2l1 1a1.7 1.7 0 0 1 0 2.4L9.1 18.3l-4.3 1.3 1.3-4.3L16.8 4.6a1.7 1.7 0 0 1 2-.4Z" />
+            <path d="M15.5 5.9l2.6 2.6" />
+          </svg>
+        </button>
       </section>
 
       <section class="compact-list no-drag" id="compactTaskList" aria-live="polite"></section>
@@ -48,24 +56,15 @@
         </div>
 
         <nav class="toolbar no-drag" aria-label="应用工具栏">
-          <button class="text-button" id="collapseButton" title="收起为悬浮窗">收起</button>
           <button class="text-button" id="fullPinButton" title="切换置顶">置顶</button>
-          <button class="icon-button" id="searchButton" title="搜索" aria-label="搜索">
-            <span aria-hidden="true">⌕</span>
-          </button>
-          <button class="icon-button" id="historyButton" title="历史" aria-label="历史">
-            <span aria-hidden="true">◷</span>
-          </button>
-          <button class="icon-button accent" id="newNoteButton" title="新建随笔" aria-label="新建随笔">
-            <span aria-hidden="true">＋</span>
-          </button>
+          <button class="text-button" id="collapseButton" title="收起为悬浮窗">收起</button>
           <button class="icon-button" id="fullMoreButton" title="更多设置" aria-label="更多设置">
             <span aria-hidden="true">⋯</span>
           </button>
-          <button class="icon-button" id="minimizeButton" title="最小化" aria-label="最小化">
+          <button class="icon-button" data-window-minimize title="最小化" aria-label="最小化">
             <span aria-hidden="true">−</span>
           </button>
-          <button class="icon-button" id="closeButton" title="关闭" aria-label="关闭">
+          <button class="icon-button" data-window-close title="关闭" aria-label="关闭">
             <span aria-hidden="true">×</span>
           </button>
         </nav>
@@ -73,31 +72,54 @@
 
       <section class="quick-add no-drag" aria-label="快速添加待办">
         <input id="quickTaskInput" type="text" placeholder="写下今天要做的一件事" autocomplete="off" />
-        <button id="quickTaskButton">添加</button>
+        <button class="note-action-button" id="newNoteButton" title="新建随笔" aria-label="新建随笔">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M18.8 4.2l1 1a1.7 1.7 0 0 1 0 2.4L9.1 18.3l-4.3 1.3 1.3-4.3L16.8 4.6a1.7 1.7 0 0 1 2-.4Z" />
+            <path d="M15.5 5.9l2.6 2.6" />
+          </svg>
+        </button>
       </section>
 
       <main id="dayBoard" class="day-board vertical no-drag" aria-live="polite"></main>
     </div>
 
-    <section class="preferences-menu no-drag hidden" id="preferencesMenu" aria-label="显示设置">
+    <section class="preferences-menu no-drag hidden" id="preferencesMenu" aria-label="更多菜单">
       <header>
-        <span>显示设置</span>
-        <button class="icon-button" id="closePreferencesButton" title="关闭设置" aria-label="关闭设置">×</button>
+        <span>更多</span>
+        <button class="icon-button" id="closePreferencesButton" title="关闭菜单" aria-label="关闭菜单">×</button>
       </header>
-      <label class="preference-row" for="opacitySelect">
-        <span>透明度</span>
-        <select id="opacitySelect">
-          <option value="1">100%</option>
-          <option value="0.9">90%</option>
-          <option value="0.8">80%</option>
-          <option value="0.7">70%</option>
-          <option value="0.6">60%</option>
-        </select>
-      </label>
-      <button class="preference-row preference-button" id="lockButton" title="锁定或解锁窗口拖动">
-        <span>锁定位置</span>
-        <strong id="lockStateLabel">关</strong>
-      </button>
+      <div class="menu-group" aria-label="记录">
+        <span class="menu-label">记录</span>
+        <button class="preference-row preference-button" id="menuNoteButton" type="button">
+          <span>新建随笔</span>
+          <strong>↙</strong>
+        </button>
+        <button class="preference-row preference-button" id="menuSearchButton" type="button">
+          <span>搜索</span>
+          <strong>⌕</strong>
+        </button>
+        <button class="preference-row preference-button" id="menuHistoryButton" type="button">
+          <span>历史</span>
+          <strong>◷</strong>
+        </button>
+      </div>
+      <div class="menu-group" aria-label="显示">
+        <span class="menu-label">显示</span>
+        <label class="preference-row" for="opacitySelect">
+          <span>透明度</span>
+          <select id="opacitySelect">
+            <option value="1">100%</option>
+            <option value="0.9">90%</option>
+            <option value="0.8">80%</option>
+            <option value="0.7">70%</option>
+            <option value="0.6">60%</option>
+          </select>
+        </label>
+        <button class="preference-row preference-button" id="lockButton" title="锁定或解锁窗口拖动">
+          <span>锁定位置</span>
+          <strong id="lockStateLabel">关</strong>
+        </button>
+      </div>
     </section>
 
     <div class="side-panel no-drag" id="notePanel" aria-hidden="true">

@@ -40,26 +40,23 @@ const expandButton = document.getElementById("expandButton");
 const compactNoteButton = document.getElementById("compactNoteButton");
 const compactMoreButton = document.getElementById("compactMoreButton");
 const compactTaskInput = document.getElementById("compactTaskInput");
-const compactTaskButton = document.getElementById("compactTaskButton");
 const compactTaskList = document.getElementById("compactTaskList");
 const lockButton = document.getElementById("lockButton");
 const lockStateLabel = document.getElementById("lockStateLabel");
 const opacitySelect = document.getElementById("opacitySelect");
 const preferencesMenu = document.getElementById("preferencesMenu");
 const closePreferencesButton = document.getElementById("closePreferencesButton");
+const menuNoteButton = document.getElementById("menuNoteButton");
+const menuSearchButton = document.getElementById("menuSearchButton");
+const menuHistoryButton = document.getElementById("menuHistoryButton");
 const fullShell = document.getElementById("fullShell");
 const collapseButton = document.getElementById("collapseButton");
 const fullPinButton = document.getElementById("fullPinButton");
 const fullMoreButton = document.getElementById("fullMoreButton");
-const minimizeButton = document.getElementById("minimizeButton");
-const closeButton = document.getElementById("closeButton");
 const board = document.getElementById("dayBoard");
 const todayLabel = document.getElementById("todayLabel");
 const quickTaskInput = document.getElementById("quickTaskInput");
-const quickTaskButton = document.getElementById("quickTaskButton");
 const newNoteButton = document.getElementById("newNoteButton");
-const searchButton = document.getElementById("searchButton");
-const historyButton = document.getElementById("historyButton");
 const historyPanel = document.getElementById("historyPanel");
 const historyList = document.getElementById("historyList");
 const historySearchInput = document.getElementById("historySearchInput");
@@ -795,33 +792,51 @@ async function updateWindowPreferences(patch) {
 }
 
 async function openQuickNote() {
+  closePreferencesMenu();
   await setWindowMode("full");
   openNoteEditor(null, getTodayKey());
 }
 
-compactTaskButton.addEventListener("click", () => addTodayTaskFrom(compactTaskInput));
+async function openHistoryFromMenu(focusSearch = false) {
+  closePreferencesMenu();
+  await setWindowMode("full");
+  openHistoryPanel(focusSearch);
+}
+
 compactTaskInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") addTodayTaskFrom(compactTaskInput);
+  if (event.key === "Enter") {
+    event.preventDefault();
+    addTodayTaskFrom(compactTaskInput);
+  }
 });
 
-quickTaskButton.addEventListener("click", () => addTodayTaskFrom(quickTaskInput));
 quickTaskInput.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") addTodayTaskFrom(quickTaskInput);
+  if (event.key === "Enter") {
+    event.preventDefault();
+    addTodayTaskFrom(quickTaskInput);
+  }
 });
 
 expandButton.addEventListener("click", () => setWindowMode("full"));
 collapseButton.addEventListener("click", () => setWindowMode("compact"));
 compactNoteButton.addEventListener("click", openQuickNote);
-newNoteButton.addEventListener("click", () => openNoteEditor(null, getTodayKey()));
+newNoteButton.addEventListener("click", openQuickNote);
 compactMoreButton.addEventListener("click", togglePreferencesMenu);
 fullMoreButton.addEventListener("click", togglePreferencesMenu);
 closePreferencesButton.addEventListener("click", closePreferencesMenu);
-searchButton.addEventListener("click", () => openHistoryPanel(true));
-historyButton.addEventListener("click", () => openHistoryPanel(false));
+menuNoteButton.addEventListener("click", openQuickNote);
+menuSearchButton.addEventListener("click", () => openHistoryFromMenu(true));
+menuHistoryButton.addEventListener("click", () => openHistoryFromMenu(false));
 historySearchInput.addEventListener("input", renderHistory);
 exportButton.addEventListener("click", exportData);
-minimizeButton.addEventListener("click", () => windowApi.minimize());
-closeButton.addEventListener("click", () => windowApi.close());
+
+document.querySelectorAll("[data-window-minimize]").forEach((button) => {
+  button.addEventListener("click", () => windowApi.minimize());
+});
+
+document.querySelectorAll("[data-window-close]").forEach((button) => {
+  button.addEventListener("click", () => windowApi.close());
+});
 
 compactPinButton.addEventListener("click", () => {
   updateWindowPreferences({ alwaysOnTop: !windowPrefs.alwaysOnTop });
