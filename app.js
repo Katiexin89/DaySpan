@@ -38,14 +38,19 @@ const compactDateLabel = document.getElementById("compactDateLabel");
 const compactPinButton = document.getElementById("compactPinButton");
 const expandButton = document.getElementById("expandButton");
 const compactNoteButton = document.getElementById("compactNoteButton");
+const compactMoreButton = document.getElementById("compactMoreButton");
 const compactTaskInput = document.getElementById("compactTaskInput");
 const compactTaskButton = document.getElementById("compactTaskButton");
 const compactTaskList = document.getElementById("compactTaskList");
 const lockButton = document.getElementById("lockButton");
+const lockStateLabel = document.getElementById("lockStateLabel");
 const opacitySelect = document.getElementById("opacitySelect");
+const preferencesMenu = document.getElementById("preferencesMenu");
+const closePreferencesButton = document.getElementById("closePreferencesButton");
 const fullShell = document.getElementById("fullShell");
 const collapseButton = document.getElementById("collapseButton");
 const fullPinButton = document.getElementById("fullPinButton");
+const fullMoreButton = document.getElementById("fullMoreButton");
 const minimizeButton = document.getElementById("minimizeButton");
 const closeButton = document.getElementById("closeButton");
 const board = document.getElementById("dayBoard");
@@ -216,7 +221,7 @@ function renderWindowState() {
   const pinText = windowPrefs.alwaysOnTop ? "置顶" : "贴桌";
   compactPinButton.textContent = pinText;
   fullPinButton.textContent = pinText;
-  lockButton.textContent = windowPrefs.lockPosition ? "已锁定" : "可拖动";
+  lockStateLabel.textContent = windowPrefs.lockPosition ? "开" : "关";
   opacitySelect.value = String(windowPrefs.opacity);
 }
 
@@ -248,12 +253,8 @@ function renderCompactTask(task) {
 }
 
 function renderFullApp() {
-  const layout = state.settings.layout || "vertical";
-  board.className = `day-board ${layout} no-drag`;
+  board.className = "day-board vertical no-drag";
   todayLabel.textContent = formatFullDate(getTodayKey());
-  document.querySelectorAll("[data-layout]").forEach((button) => {
-    button.classList.toggle("active", button.dataset.layout === layout);
-  });
 
   board.innerHTML = getDays().map(renderDayCard).join("");
   bindBoardEvents();
@@ -769,6 +770,14 @@ function exportData() {
   URL.revokeObjectURL(url);
 }
 
+function togglePreferencesMenu() {
+  preferencesMenu.classList.toggle("hidden");
+}
+
+function closePreferencesMenu() {
+  preferencesMenu.classList.add("hidden");
+}
+
 async function setWindowMode(mode) {
   windowPrefs = { ...windowPrefs, mode };
   renderApp();
@@ -790,14 +799,6 @@ async function openQuickNote() {
   openNoteEditor(null, getTodayKey());
 }
 
-document.querySelectorAll("[data-layout]").forEach((button) => {
-  button.addEventListener("click", () => {
-    state.settings.layout = button.dataset.layout;
-    saveState();
-    renderApp();
-  });
-});
-
 compactTaskButton.addEventListener("click", () => addTodayTaskFrom(compactTaskInput));
 compactTaskInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") addTodayTaskFrom(compactTaskInput);
@@ -812,6 +813,9 @@ expandButton.addEventListener("click", () => setWindowMode("full"));
 collapseButton.addEventListener("click", () => setWindowMode("compact"));
 compactNoteButton.addEventListener("click", openQuickNote);
 newNoteButton.addEventListener("click", () => openNoteEditor(null, getTodayKey()));
+compactMoreButton.addEventListener("click", togglePreferencesMenu);
+fullMoreButton.addEventListener("click", togglePreferencesMenu);
+closePreferencesButton.addEventListener("click", closePreferencesMenu);
 searchButton.addEventListener("click", () => openHistoryPanel(true));
 historyButton.addEventListener("click", () => openHistoryPanel(false));
 historySearchInput.addEventListener("input", renderHistory);
@@ -866,6 +870,17 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeNoteEditor();
     closeHistoryPanel();
+    closePreferencesMenu();
+  }
+});
+
+document.addEventListener("click", (event) => {
+  if (
+    !preferencesMenu.classList.contains("hidden") &&
+    !preferencesMenu.contains(event.target) &&
+    !event.target.closest("#compactMoreButton, #fullMoreButton")
+  ) {
+    closePreferencesMenu();
   }
 });
 

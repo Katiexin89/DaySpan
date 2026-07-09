@@ -79,7 +79,7 @@ body.locked .drag-region {
 .compact-shell {
   display: grid;
   height: 100vh;
-  grid-template-rows: auto auto 1fr auto;
+  grid-template-rows: auto auto 1fr;
   gap: 10px;
   padding: 10px;
   background: rgba(247, 243, 234, 0.96);
@@ -131,11 +131,9 @@ body.locked .drag-region {
 
 .compact-toolbar,
 .toolbar,
-.view-switcher,
 .editor-tabs,
 .panel-actions,
-.history-tools,
-.compact-footer {
+.history-tools {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -303,29 +301,6 @@ body.locked .drag-region {
   font-size: 13px;
 }
 
-.compact-footer {
-  justify-content: space-between;
-}
-
-.opacity-control {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.opacity-control select {
-  height: 30px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 0 8px;
-  background: var(--surface-strong);
-  color: var(--ink);
-  outline: none;
-}
-
 .app-shell {
   width: min(100%, 1180px);
   min-height: 100vh;
@@ -341,17 +316,12 @@ body.locked .drag-region {
   margin-bottom: 10px;
 }
 
-.view-switcher,
 .editor-tabs {
   width: max-content;
   padding: 3px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: rgba(255, 253, 248, 0.72);
-}
-
-.view-switcher {
-  margin-bottom: 12px;
 }
 
 .segment {
@@ -377,12 +347,6 @@ body.locked .drag-region {
 
 .day-board.vertical {
   grid-template-columns: minmax(0, 1fr);
-}
-
-.day-board.horizontal {
-  grid-template-columns: repeat(3, minmax(280px, 1fr));
-  overflow-x: auto;
-  padding-bottom: 8px;
 }
 
 .day-card {
@@ -845,6 +809,76 @@ body.locked .drag-region {
   font-weight: 900;
 }
 
+.preferences-menu {
+  position: fixed;
+  top: 54px;
+  right: 10px;
+  z-index: 18;
+  display: grid;
+  width: 220px;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  background: rgba(255, 253, 248, 0.98);
+  box-shadow: 0 14px 38px rgba(42, 35, 25, 0.16);
+}
+
+body.mode-full .preferences-menu {
+  top: 64px;
+  right: 18px;
+}
+
+.preferences-menu header,
+.preference-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.preferences-menu header {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.preferences-menu header .icon-button {
+  width: 28px;
+  height: 28px;
+  flex-basis: 28px;
+  font-size: 17px;
+}
+
+.preference-row {
+  min-height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: var(--surface-strong);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.preference-row select {
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 8px;
+  background: #fff;
+  color: var(--ink);
+  outline: none;
+}
+
+.preference-button {
+  width: 100%;
+}
+
+.preference-button strong {
+  color: var(--accent-strong);
+}
+
 @media (max-width: 720px) {
   .app-shell {
     padding: 14px;
@@ -857,10 +891,6 @@ body.locked .drag-region {
   .toolbar {
     flex-wrap: wrap;
     justify-content: flex-end;
-  }
-
-  .day-board.horizontal {
-    grid-template-columns: minmax(280px, 1fr);
   }
 
   .panel-card {

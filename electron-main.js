@@ -76,6 +76,31 @@ function getDefaultBounds(mode) {
   };
 }
 
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getAnchoredBounds(targetMode, sourceBounds) {
+  const size = targetMode === "full" ? FULL_SIZE : FLOATING_SIZE;
+  const display = sourceBounds ? screen.getDisplayMatching(sourceBounds) : screen.getPrimaryDisplay();
+  const { workArea } = display;
+  const width = size.width;
+  const height = Math.min(size.height, workArea.height - 40);
+  const source = sourceBounds || getDefaultBounds("compact");
+  const sourceCenterX = source.x + source.width / 2;
+  const workAreaCenterX = workArea.x + workArea.width / 2;
+  const anchorRight = sourceCenterX >= workAreaCenterX;
+  const preferredX = anchorRight ? source.x + source.width - width : source.x;
+  const preferredY = source.y;
+
+  return {
+    x: clamp(preferredX, workArea.x + 12, workArea.x + workArea.width - width - 12),
+    y: clamp(preferredY, workArea.y + 12, workArea.y + workArea.height - height - 12),
+    width,
+    height
+  };
+}
+
 function normalizeBounds(bounds, mode) {
   const fallback = getDefaultBounds(mode);
   if (!bounds || typeof bounds !== "object") return fallback;
@@ -105,6 +130,8 @@ function applyWindowMode(mode) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
 
   const nextMode = mode === "full" ? "full" : "compact";
+  const previousMode = preferences.mode === "full" ? "full" : "compact";
+  const sourceBounds = mainWindow.getBounds();
   preferences.mode = nextMode;
 
   if (nextMode === "compact") {
@@ -117,7 +144,12 @@ function applyWindowMode(mode) {
     mainWindow.setMinimumSize(360, 620);
   }
 
-  mainWindow.setBounds(normalizeBounds(preferences.bounds[nextMode], nextMode), true);
+  const nextBounds =
+    previousMode === nextMode
+      ? normalizeBounds(preferences.bounds[nextMode], nextMode)
+      : getAnchoredBounds(nextMode, sourceBounds);
+
+  mainWindow.setBounds(nextBounds, true);
   applyWindowPreferences();
   savePreferences();
   mainWindow.show();
