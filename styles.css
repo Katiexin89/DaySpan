@@ -320,7 +320,7 @@ body.locked .drag-region {
 
 .compact-task {
   display: grid;
-  grid-template-columns: 24px 1fr;
+  grid-template-columns: 24px 1fr auto;
   gap: 8px;
   align-items: center;
   min-height: 31px;
@@ -361,6 +361,22 @@ body.locked .drag-region {
 .compact-task-edit-input:focus {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(47, 111, 115, 0.14);
+}
+
+.compact-task-delete {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.compact-task-delete:hover {
+  background: #f1ece3;
+  color: var(--ink);
 }
 
 .compact-empty {
@@ -719,10 +735,9 @@ body.locked .drag-region {
   outline: none;
 }
 
-.inline-task-form footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 6px;
+.inline-task-form input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47, 111, 115, 0.14);
 }
 
 .empty-state {

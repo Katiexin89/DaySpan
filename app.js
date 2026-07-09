@@ -5,7 +5,7 @@ const windowDefaults = {
   alwaysOnTop: true,
   opacity: 0.9,
   lockPosition: false,
-  hoverOpaque: true
+  hoverOpaque: false
 };
 
 const initialState = {
@@ -283,6 +283,13 @@ function renderCompactApp() {
       renderApp();
     });
   });
+  compactTaskList.querySelectorAll("[data-compact-delete-task]").forEach((button) => {
+    button.addEventListener("mousedown", (event) => event.preventDefault());
+    button.addEventListener("click", () => {
+      deleteTask(button.dataset.compactDeleteTask);
+      renderApp();
+    });
+  });
   compactTaskList.querySelectorAll("[data-compact-edit-task-title]").forEach((element) => {
     element.addEventListener("dblclick", () => {
       startTaskEdit(element.dataset.compactEditTaskTitle);
@@ -375,6 +382,7 @@ function renderCompactTask(task) {
       <form class="compact-task compact-task-edit" data-compact-task-edit-form="${task.id}">
         <button class="task-check" type="button" data-compact-toggle="${task.id}" title="完成待办" aria-label="完成待办"></button>
         <input class="compact-task-edit-input" name="title" type="text" value="${escapeHtml(task.title)}" autocomplete="off" />
+        <button class="compact-task-delete" type="button" data-compact-delete-task="${task.id}" title="删除" aria-label="删除">×</button>
       </form>
     `;
   }
@@ -383,6 +391,7 @@ function renderCompactTask(task) {
     <article class="compact-task">
       <button class="task-check" data-compact-toggle="${task.id}" title="完成待办" aria-label="完成待办"></button>
       <span data-compact-edit-task-title="${task.id}" tabindex="0" title="双击编辑待办">${escapeHtml(task.title)}</span>
+      <button class="compact-task-delete" data-compact-delete-task="${task.id}" title="删除" aria-label="删除">×</button>
     </article>
   `;
 }
@@ -470,17 +479,11 @@ function renderInlineTaskForm(date) {
   return `
     <form class="inline-task-form" data-task-form="${date}">
       <input name="title" type="text" placeholder="待办内容" autocomplete="off" />
-      <input name="tags" type="text" placeholder="标签，例如 科研, 课程" autocomplete="off" />
-      <footer>
-        <button class="ghost-button" type="button" data-cancel-task>取消</button>
-        <button class="primary-button" type="submit">保存</button>
-      </footer>
     </form>
   `;
 }
 
 function renderTask(task) {
-  const tags = task.tags || [];
   if (activeEditTaskId === task.id) {
     return `
       <form class="task-item task-edit-item ${task.done ? "done" : ""}" data-task-edit-form="${task.id}">
@@ -502,7 +505,6 @@ function renderTask(task) {
       </button>
       <div class="task-body" data-edit-task-title="${task.id}" title="双击编辑待办">
         <p class="task-title">${escapeHtml(task.title)}</p>
-        ${tags.length ? `<div class="task-meta">${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
       </div>
       <div class="task-menu">
         <button data-delete-task="${task.id}" title="删除" aria-label="删除">×</button>
@@ -541,19 +543,25 @@ function bindBoardEvents() {
   });
 
   board.querySelectorAll("[data-task-form]").forEach((form) => {
+    const input = form.querySelector("input[name='title']");
     form.addEventListener("submit", (event) => {
       event.preventDefault();
-      const formData = new FormData(form);
-      addTask(form.dataset.taskForm, formData.get("title"), formData.get("tags"));
-      activeTaskFormDate = null;
-      renderApp();
+      finishInlineTaskForm(form.dataset.taskForm, input.value, true);
     });
-  });
-
-  board.querySelectorAll("[data-cancel-task]").forEach((button) => {
-    button.addEventListener("click", () => {
-      activeTaskFormDate = null;
-      renderApp();
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        finishInlineTaskForm(form.dataset.taskForm, input.value, true);
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        finishInlineTaskForm(form.dataset.taskForm, input.value, false);
+      }
+    });
+    input.addEventListener("blur", () => {
+      if (activeTaskFormDate === form.dataset.taskForm) {
+        finishInlineTaskForm(form.dataset.taskForm, input.value, true);
+      }
     });
   });
 
@@ -572,6 +580,7 @@ function bindBoardEvents() {
   });
 
   board.querySelectorAll("[data-delete-task]").forEach((button) => {
+    button.addEventListener("mousedown", (event) => event.preventDefault());
     button.addEventListener("click", () => {
       deleteTask(button.dataset.deleteTask);
       renderApp();
@@ -608,7 +617,7 @@ function bindBoardEvents() {
   });
 
   board.querySelectorAll("[data-add-note]").forEach((button) => {
-    button.addEventListener("click", () => openQuickNoteEditor(null, button.dataset.addNote));
+    button.addEventListener("click", () => openNoteEditor(null, button.dataset.addNote));
   });
 
   board.querySelectorAll("[data-open-note]").forEach((card) => {
@@ -620,9 +629,9 @@ function bindBoardEvents() {
   });
 
   board.querySelectorAll("[data-empty-note]").forEach((empty) => {
-    empty.addEventListener("dblclick", () => openQuickNoteEditor(null, empty.dataset.emptyNote));
+    empty.addEventListener("dblclick", () => openNoteEditor(null, empty.dataset.emptyNote));
     empty.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") openQuickNoteEditor(null, empty.dataset.emptyNote);
+      if (event.key === "Enter") openNoteEditor(null, empty.dataset.emptyNote);
     });
   });
 
@@ -637,6 +646,13 @@ function openInlineTaskForm(date) {
   renderApp();
   const input = board.querySelector(`[data-task-form="${activeTaskFormDate}"] input[name="title"]`);
   input?.focus();
+}
+
+function finishInlineTaskForm(date, title, shouldSave) {
+  if (activeTaskFormDate !== date) return;
+  if (shouldSave) addTask(date, title);
+  activeTaskFormDate = null;
+  renderApp();
 }
 
 function addTask(date, title, tagValue = "") {
@@ -1129,7 +1145,7 @@ quickTaskInput.addEventListener("keydown", (event) => {
 expandButton.addEventListener("click", () => setWindowMode("full"));
 collapseButton.addEventListener("click", () => setWindowMode("compact"));
 compactNoteButton.addEventListener("click", () => openQuickNoteEditor(null, getTodayKey()));
-newNoteButton.addEventListener("click", () => openQuickNoteEditor(null, getTodayKey()));
+newNoteButton.addEventListener("click", () => openNoteEditor(null, getTodayKey()));
 compactMoreButton.addEventListener("click", togglePreferencesMenu);
 fullMoreButton.addEventListener("click", togglePreferencesMenu);
 closePreferencesButton.addEventListener("click", closePreferencesMenu);
@@ -1163,14 +1179,6 @@ lockButton.addEventListener("click", () => {
 
 opacitySelect.addEventListener("change", () => {
   updateWindowPreferences({ opacity: Number(opacitySelect.value) });
-});
-
-compactShell.addEventListener("mouseenter", () => {
-  if (windowPrefs.hoverOpaque) windowApi.setOpacity(1);
-});
-
-compactShell.addEventListener("mouseleave", () => {
-  if (windowPrefs.hoverOpaque) windowApi.setOpacity(windowPrefs.opacity);
 });
 
 document.querySelectorAll("[data-close-panel]").forEach((element) => {

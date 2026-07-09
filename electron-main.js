@@ -20,7 +20,7 @@ const defaultPreferences = {
   alwaysOnTop: true,
   opacity: 0.9,
   lockPosition: false,
-  hoverOpaque: true,
+  hoverOpaque: false,
   lockMigrationVersion: LOCK_MIGRATION_VERSION,
   bounds: {
     compact: null,
@@ -41,7 +41,8 @@ function loadPreferences() {
         ...defaultPreferences.bounds,
         ...(saved.bounds || {})
       },
-      mode: "compact"
+      mode: "compact",
+      hoverOpaque: false
     };
     if (saved.lockMigrationVersion !== LOCK_MIGRATION_VERSION) {
       loaded.lockPosition = false;

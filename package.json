@@ -1,6 +1,6 @@
 {
   "name": "dayspan",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": true,
   "productName": "DaySpan",
   "description": "A local-first three-day desktop workbench for todos and Markdown notes.",
