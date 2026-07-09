@@ -29,9 +29,19 @@ const windowApi = window.daySpanWindow || {
 let state = loadState();
 let windowPrefs = { ...windowDefaults };
 let activeTaskFormDate = null;
+let activeEditTaskId = null;
 let activeNoteId = null;
 let activeNoteDate = dateKey(new Date());
 let activeEditorTab = "write";
+let quickNoteId = null;
+let quickNoteDate = dateKey(new Date());
+
+const PEN_ICON_SVG = `
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    <path d="M18.8 4.2l1 1a1.7 1.7 0 0 1 0 2.4L9.1 18.3l-4.3 1.3 1.3-4.3L16.8 4.6a1.7 1.7 0 0 1 2-.4Z" />
+    <path d="M15.5 5.9l2.6 2.6" />
+  </svg>
+`;
 
 const compactShell = document.getElementById("compactShell");
 const compactDateLabel = document.getElementById("compactDateLabel");
@@ -46,7 +56,6 @@ const lockStateLabel = document.getElementById("lockStateLabel");
 const opacitySelect = document.getElementById("opacitySelect");
 const preferencesMenu = document.getElementById("preferencesMenu");
 const closePreferencesButton = document.getElementById("closePreferencesButton");
-const menuNoteButton = document.getElementById("menuNoteButton");
 const menuSearchButton = document.getElementById("menuSearchButton");
 const menuHistoryButton = document.getElementById("menuHistoryButton");
 const fullShell = document.getElementById("fullShell");
@@ -70,6 +79,11 @@ const noteSummaryInput = document.getElementById("noteSummaryInput");
 const notePreview = document.getElementById("notePreview");
 const saveNoteButton = document.getElementById("saveNoteButton");
 const deleteNoteButton = document.getElementById("deleteNoteButton");
+const quickNotePanel = document.getElementById("quickNotePanel");
+const quickNoteDateLabel = document.getElementById("quickNoteDateLabel");
+const quickNoteContentInput = document.getElementById("quickNoteContentInput");
+const closeQuickNoteButton = document.getElementById("closeQuickNoteButton");
+const saveQuickNoteButton = document.getElementById("saveQuickNoteButton");
 
 function loadState() {
   try {
@@ -131,6 +145,10 @@ function formatFullDate(dateText) {
     day: "numeric",
     weekday: "long"
   }).format(date);
+}
+
+function formatDateKeyCompact(dateText) {
+  return formatCompactDate(new Date(`${dateText}T00:00:00`));
 }
 
 function getDays() {
@@ -201,6 +219,21 @@ function getTodayUndoneTasks() {
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
+function getNotesByDate(date) {
+  return state.notes
+    .filter((note) => note.date === date)
+    .sort((a, b) => Number(b.isSummary) - Number(a.isSummary) || b.updatedAt.localeCompare(a.updatedAt));
+}
+
+function createNoteTitle(content, date) {
+  const firstLine = String(content || "")
+    .split(/\r?\n/)
+    .map((line) => stripMarkdown(line).trim())
+    .find(Boolean);
+  if (firstLine) return firstLine.slice(0, 28);
+  return `${formatDateKeyCompact(date)} 随笔`;
+}
+
 function renderApp() {
   renderWindowState();
   renderCompactApp();
@@ -224,18 +257,40 @@ function renderWindowState() {
 
 function renderCompactApp() {
   compactDateLabel.textContent = formatCompactDate(new Date());
-  const tasks = getTodayUndoneTasks().slice(0, 3);
+  const tasks = getTodayUndoneTasks().slice(0, 2);
+  const todayNotes = getNotesByDate(getTodayKey()).slice(0, 1);
 
-  if (!tasks.length) {
-    compactTaskList.innerHTML = `<div class="compact-empty">随手写下一件事</div>`;
-    return;
-  }
+  compactTaskList.innerHTML = `
+    <section class="compact-section">
+      <div class="compact-section-title">今日待办</div>
+      ${tasks.length ? tasks.map(renderCompactTask).join("") : `<div class="compact-empty">随手写下一件事</div>`}
+    </section>
+    <section class="compact-section">
+      <div class="compact-section-title">今日随笔</div>
+      ${
+        todayNotes.length
+          ? todayNotes.map(renderCompactNote).join("")
+          : `<div class="compact-empty compact-note-empty" data-empty-note="${getTodayKey()}" tabindex="0">随手记一点想法</div>`
+      }
+    </section>
+  `;
 
-  compactTaskList.innerHTML = tasks.map(renderCompactTask).join("");
   compactTaskList.querySelectorAll("[data-compact-toggle]").forEach((button) => {
     button.addEventListener("click", () => {
       toggleTask(button.dataset.compactToggle);
       renderApp();
+    });
+  });
+  compactTaskList.querySelectorAll("[data-compact-note]").forEach((card) => {
+    card.addEventListener("dblclick", () => openQuickNoteEditor(card.dataset.compactNote));
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") openQuickNoteEditor(card.dataset.compactNote);
+    });
+  });
+  compactTaskList.querySelectorAll("[data-empty-note]").forEach((empty) => {
+    empty.addEventListener("dblclick", () => openQuickNoteEditor(null, empty.dataset.emptyNote));
+    empty.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") openQuickNoteEditor(null, empty.dataset.emptyNote);
     });
   });
 }
@@ -249,9 +304,19 @@ function renderCompactTask(task) {
   `;
 }
 
+function renderCompactNote(note) {
+  const plain = stripMarkdown(note.content || "");
+  return `
+    <article class="compact-note" data-compact-note="${note.id}" tabindex="0" title="双击编辑随笔">
+      <strong>${escapeHtml(note.title || "未命名随笔")}</strong>
+      <span>${escapeHtml(plain || "空白随笔")}</span>
+    </article>
+  `;
+}
+
 function renderFullApp() {
   board.className = "day-board vertical no-drag";
-  todayLabel.textContent = formatFullDate(getTodayKey());
+  todayLabel.textContent = formatDateKeyCompact(getTodayKey());
 
   board.innerHTML = getDays().map(renderDayCard).join("");
   bindBoardEvents();
@@ -261,9 +326,7 @@ function renderDayCard(day) {
   const tasks = state.tasks
     .filter((task) => task.date === day.key)
     .sort((a, b) => Number(a.done) - Number(b.done) || a.createdAt.localeCompare(b.createdAt));
-  const notes = state.notes
-    .filter((note) => note.date === day.key)
-    .sort((a, b) => Number(b.isSummary) - Number(a.isSummary) || b.updatedAt.localeCompare(a.updatedAt));
+  const notes = getNotesByDate(day.key);
   const undoneCount = tasks.filter((task) => !task.done).length;
 
   return `
@@ -276,7 +339,7 @@ function renderDayCard(day) {
         </div>
         <div class="day-actions">
           <button class="mini-button" data-add-task="${day.key}" title="新增待办" aria-label="新增待办">＋</button>
-          <button class="mini-button" data-add-note="${day.key}" title="新增随笔" aria-label="新增随笔">✎</button>
+          <button class="mini-button mini-pen-button" data-add-note="${day.key}" title="新增随笔" aria-label="新增随笔">${PEN_ICON_SVG}</button>
         </div>
       </header>
       <div class="day-content">
@@ -297,7 +360,11 @@ function renderDayCard(day) {
             <span>${notes.length}</span>
           </div>
           <div class="note-list">
-            ${notes.length ? notes.map(renderNoteCard).join("") : `<div class="empty-state">${day.emptyNotes}</div>`}
+            ${
+              notes.length
+                ? notes.map(renderNoteCard).join("")
+                : `<div class="empty-state note-empty-state" data-empty-note="${day.key}" tabindex="0">${day.emptyNotes}</div>`
+            }
           </div>
         </section>
       </div>
@@ -321,17 +388,30 @@ function renderInlineTaskForm(date) {
 
 function renderTask(task) {
   const tags = task.tags || [];
+  if (activeEditTaskId === task.id) {
+    return `
+      <form class="task-item task-edit-item ${task.done ? "done" : ""}" data-task-edit-form="${task.id}">
+        <button class="task-check" type="button" data-toggle-task="${task.id}" title="切换完成状态" aria-label="切换完成状态">
+          ${task.done ? "✓" : ""}
+        </button>
+        <input class="task-edit-input" name="title" type="text" value="${escapeHtml(task.title)}" autocomplete="off" />
+        <div class="task-menu">
+          <button type="button" data-delete-task="${task.id}" title="删除" aria-label="删除">×</button>
+        </div>
+      </form>
+    `;
+  }
+
   return `
     <article class="task-item ${task.done ? "done" : ""}" data-task-id="${task.id}">
       <button class="task-check" data-toggle-task="${task.id}" title="切换完成状态" aria-label="切换完成状态">
         ${task.done ? "✓" : ""}
       </button>
-      <div>
+      <div class="task-body" data-edit-task-title="${task.id}" title="双击编辑待办">
         <p class="task-title">${escapeHtml(task.title)}</p>
         ${tags.length ? `<div class="task-meta">${tags.map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}</div>` : ""}
       </div>
       <div class="task-menu">
-        <button data-edit-task="${task.id}" title="编辑" aria-label="编辑">✎</button>
         <button data-delete-task="${task.id}" title="删除" aria-label="删除">×</button>
       </div>
     </article>
@@ -401,20 +481,51 @@ function bindBoardEvents() {
     });
   });
 
-  board.querySelectorAll("[data-edit-task]").forEach((button) => {
-    button.addEventListener("click", () => {
-      editTask(button.dataset.editTask);
+  board.querySelectorAll("[data-edit-task-title]").forEach((element) => {
+    element.addEventListener("dblclick", () => {
+      startTaskEdit(element.dataset.editTaskTitle);
+    });
+  });
+
+  board.querySelectorAll("[data-task-edit-form]").forEach((form) => {
+    const input = form.querySelector("input[name='title']");
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      finishTaskEdit(form.dataset.taskEditForm, input.value, true);
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        finishTaskEdit(form.dataset.taskEditForm, input.value, true);
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        finishTaskEdit(form.dataset.taskEditForm, input.value, false);
+      }
+    });
+    input.addEventListener("blur", () => {
+      if (activeEditTaskId === form.dataset.taskEditForm) {
+        finishTaskEdit(form.dataset.taskEditForm, input.value, true);
+      }
     });
   });
 
   board.querySelectorAll("[data-add-note]").forEach((button) => {
-    button.addEventListener("click", () => openNoteEditor(null, button.dataset.addNote));
+    button.addEventListener("click", () => openQuickNoteEditor(null, button.dataset.addNote));
   });
 
   board.querySelectorAll("[data-open-note]").forEach((card) => {
     card.addEventListener("click", () => openNoteEditor(card.dataset.openNote));
+    card.addEventListener("dblclick", () => openNoteEditor(card.dataset.openNote));
     card.addEventListener("keydown", (event) => {
       if (event.key === "Enter") openNoteEditor(card.dataset.openNote);
+    });
+  });
+
+  board.querySelectorAll("[data-empty-note]").forEach((empty) => {
+    empty.addEventListener("dblclick", () => openQuickNoteEditor(null, empty.dataset.emptyNote));
+    empty.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") openQuickNoteEditor(null, empty.dataset.emptyNote);
     });
   });
 
@@ -458,19 +569,52 @@ function toggleTask(taskId) {
 
 function deleteTask(taskId) {
   state.tasks = state.tasks.filter((item) => item.id !== taskId);
+  if (activeEditTaskId === taskId) activeEditTaskId = null;
   saveState();
 }
 
-function editTask(taskId) {
+function startTaskEdit(taskId) {
   const task = state.tasks.find((item) => item.id === taskId);
   if (!task) return;
-  const nextTitle = window.prompt("编辑待办", task.title);
-  if (nextTitle === null) return;
-  const cleanTitle = nextTitle.trim();
-  if (!cleanTitle) return;
-  task.title = cleanTitle;
-  saveState();
+  activeEditTaskId = taskId;
   renderApp();
+  const input = board.querySelector(`[data-task-edit-form="${taskId}"] input[name="title"]`);
+  input?.focus();
+  input?.select();
+}
+
+function finishTaskEdit(taskId, title, shouldSave) {
+  if (activeEditTaskId !== taskId) return;
+  if (shouldSave) {
+    const task = state.tasks.find((item) => item.id === taskId);
+    const cleanTitle = String(title || "").trim();
+    if (task && cleanTitle) {
+      task.title = cleanTitle;
+      task.updatedAt = new Date().toISOString();
+      saveState();
+    }
+  }
+  activeEditTaskId = null;
+  renderApp();
+}
+
+function addNote(date, content, options = {}) {
+  const cleanContent = String(content || "").trim();
+  if (!cleanContent) return null;
+  const now = new Date().toISOString();
+  const note = {
+    id: createId("note"),
+    date,
+    title: options.title || createNoteTitle(cleanContent, date),
+    tags: options.tags || [],
+    content: cleanContent,
+    isSummary: Boolean(options.isSummary),
+    createdAt: now,
+    updatedAt: now
+  };
+  state.notes.push(note);
+  saveState();
+  return note;
 }
 
 function carryTodayToTomorrow() {
@@ -516,6 +660,49 @@ function openNoteEditor(noteId, date = getTodayKey()) {
 function closeNoteEditor() {
   notePanel.classList.remove("open");
   notePanel.setAttribute("aria-hidden", "true");
+}
+
+function openQuickNoteEditor(noteId = null, date = getTodayKey()) {
+  closePreferencesMenu();
+  const note = noteId ? state.notes.find((item) => item.id === noteId) : null;
+  quickNoteId = note?.id || null;
+  quickNoteDate = note?.date || date;
+  quickNoteDateLabel.textContent = formatDateKeyCompact(quickNoteDate);
+  quickNoteContentInput.value = note?.content || "";
+  quickNotePanel.classList.add("open");
+  quickNotePanel.setAttribute("aria-hidden", "false");
+  quickNoteContentInput.focus();
+}
+
+function closeQuickNoteEditor() {
+  quickNotePanel.classList.remove("open");
+  quickNotePanel.setAttribute("aria-hidden", "true");
+  quickNoteId = null;
+}
+
+function saveQuickNote() {
+  const cleanContent = quickNoteContentInput.value.trim();
+  if (!cleanContent) {
+    closeQuickNoteEditor();
+    return;
+  }
+
+  if (quickNoteId) {
+    const note = state.notes.find((item) => item.id === quickNoteId);
+    if (note) {
+      note.content = cleanContent;
+      if (!note.title || note.title === "未命名随笔") {
+        note.title = createNoteTitle(cleanContent, note.date);
+      }
+      note.updatedAt = new Date().toISOString();
+      saveState();
+    }
+  } else {
+    addNote(quickNoteDate, cleanContent);
+  }
+
+  closeQuickNoteEditor();
+  renderApp();
 }
 
 function saveActiveNote() {
@@ -791,12 +978,6 @@ async function updateWindowPreferences(patch) {
   renderApp();
 }
 
-async function openQuickNote() {
-  closePreferencesMenu();
-  await setWindowMode("full");
-  openNoteEditor(null, getTodayKey());
-}
-
 async function openHistoryFromMenu(focusSearch = false) {
   closePreferencesMenu();
   await setWindowMode("full");
@@ -819,16 +1000,17 @@ quickTaskInput.addEventListener("keydown", (event) => {
 
 expandButton.addEventListener("click", () => setWindowMode("full"));
 collapseButton.addEventListener("click", () => setWindowMode("compact"));
-compactNoteButton.addEventListener("click", openQuickNote);
-newNoteButton.addEventListener("click", openQuickNote);
+compactNoteButton.addEventListener("click", () => openQuickNoteEditor(null, getTodayKey()));
+newNoteButton.addEventListener("click", () => openQuickNoteEditor(null, getTodayKey()));
 compactMoreButton.addEventListener("click", togglePreferencesMenu);
 fullMoreButton.addEventListener("click", togglePreferencesMenu);
 closePreferencesButton.addEventListener("click", closePreferencesMenu);
-menuNoteButton.addEventListener("click", openQuickNote);
 menuSearchButton.addEventListener("click", () => openHistoryFromMenu(true));
 menuHistoryButton.addEventListener("click", () => openHistoryFromMenu(false));
 historySearchInput.addEventListener("input", renderHistory);
 exportButton.addEventListener("click", exportData);
+closeQuickNoteButton.addEventListener("click", closeQuickNoteEditor);
+saveQuickNoteButton.addEventListener("click", saveQuickNote);
 
 document.querySelectorAll("[data-window-minimize]").forEach((button) => {
   button.addEventListener("click", () => windowApi.minimize());
@@ -884,6 +1066,7 @@ deleteNoteButton.addEventListener("click", deleteActiveNote);
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closeNoteEditor();
+    closeQuickNoteEditor();
     closeHistoryPanel();
     closePreferencesMenu();
   }

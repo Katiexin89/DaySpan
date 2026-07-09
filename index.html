@@ -88,12 +88,8 @@
         <span>更多</span>
         <button class="icon-button" id="closePreferencesButton" title="关闭菜单" aria-label="关闭菜单">×</button>
       </header>
-      <div class="menu-group" aria-label="记录">
-        <span class="menu-label">记录</span>
-        <button class="preference-row preference-button" id="menuNoteButton" type="button">
-          <span>新建随笔</span>
-          <strong>↙</strong>
-        </button>
+      <div class="menu-group" aria-label="归档">
+        <span class="menu-label">归档</span>
         <button class="preference-row preference-button" id="menuSearchButton" type="button">
           <span>搜索</span>
           <strong>⌕</strong>
@@ -121,6 +117,22 @@
         </button>
       </div>
     </section>
+
+    <div class="quick-note-panel no-drag" id="quickNotePanel" aria-hidden="true">
+      <article class="quick-note-card" role="dialog" aria-modal="true" aria-labelledby="quickNoteTitle">
+        <header class="panel-header">
+          <div>
+            <span class="eyebrow" id="quickNoteDateLabel">今天</span>
+            <h2 id="quickNoteTitle">随笔</h2>
+          </div>
+          <button class="icon-button" id="closeQuickNoteButton" title="关闭" aria-label="关闭">×</button>
+        </header>
+        <textarea id="quickNoteContentInput" class="quick-note-textarea" placeholder="随手记一点想法"></textarea>
+        <footer class="panel-actions">
+          <button class="primary-button" id="saveQuickNoteButton">保存</button>
+        </footer>
+      </article>
+    </div>
 
     <div class="side-panel no-drag" id="notePanel" aria-hidden="true">
       <div class="panel-backdrop" data-close-panel></div>

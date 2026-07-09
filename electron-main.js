@@ -13,6 +13,7 @@ app.commandLine.appendSwitch("disable-gpu");
 const FLOATING_SIZE = { width: 390, height: 230 };
 const FULL_SIZE = { width: 420, height: 860 };
 const preferencesPath = path.join(app.getPath("userData"), "window-preferences.json");
+const LOCK_MIGRATION_VERSION = 1;
 
 const defaultPreferences = {
   mode: "compact",
@@ -20,6 +21,7 @@ const defaultPreferences = {
   opacity: 0.9,
   lockPosition: false,
   hoverOpaque: true,
+  lockMigrationVersion: LOCK_MIGRATION_VERSION,
   bounds: {
     compact: null,
     full: null
@@ -32,7 +34,7 @@ let preferences = loadPreferences();
 function loadPreferences() {
   try {
     const saved = JSON.parse(fs.readFileSync(preferencesPath, "utf8"));
-    return {
+    const loaded = {
       ...defaultPreferences,
       ...saved,
       bounds: {
@@ -41,6 +43,11 @@ function loadPreferences() {
       },
       mode: "compact"
     };
+    if (saved.lockMigrationVersion !== LOCK_MIGRATION_VERSION) {
+      loaded.lockPosition = false;
+      loaded.lockMigrationVersion = LOCK_MIGRATION_VERSION;
+    }
+    return loaded;
   } catch {
     return { ...defaultPreferences, bounds: { ...defaultPreferences.bounds } };
   }
